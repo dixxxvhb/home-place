@@ -149,8 +149,12 @@ function buildHorseGeometry(coat) {
     fore: surfaceNets((x, y, z) => legSdf(x, y, z, false), [-0.15, -1.06, -0.12], [0.15, 0.1, 0.12], step * 0.6, legColor),
     hind: surfaceNets((x, y, z) => legSdf(x, y, z, true), [-0.18, -1.06, -0.12], [0.12, 0.1, 0.12], step * 0.6, legColor),
     tail: (() => {
-      const g = new THREE.ConeGeometry(0.07, 0.8, 7, 4);
-      g.translate(0, -0.4, 0);
+      const g = new THREE.ConeGeometry(0.03, 0.85, 5, 6);
+      g.translate(0, -0.425, 0);
+      // a slight curve so it hangs like hair, not a rod
+      const p = g.attributes.position;
+      for (let i = 0; i < p.count; i++) { const y = p.getY(i); p.setX(i, p.getX(i) - 0.12 * (y / -0.85) ** 2); }
+      g.computeVertexNormals();
       const c = new Float32Array(g.attributes.position.count * 3);
       for (let i = 0; i < c.length; i += 3) { c[i] = C.mane.r; c[i + 1] = C.mane.g; c[i + 2] = C.mane.b; }
       g.setAttribute('color', new THREE.BufferAttribute(c, 3));
@@ -185,14 +189,16 @@ class Horse {
       }
     }
     this.tail = new THREE.Group();
-    this.tail.position.set(-0.98, 1.36, 0);
-    this.tail.rotation.z = -0.25;
+    this.tail.position.set(-0.97, 1.38, 0);
+    this.tail.rotation.z = -0.12;
     this.root.add(this.tail);
     const strands = [];
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 9; i++) {
       const s = add(G.tail, this.tail);
-      s.position.set(0, -0.05 * i, (i - 1.5) * 0.025);
-      s.scale.set(1 - i * 0.12, 1 + i * 0.05, 1);
+      const a = (i / 9) * Math.PI * 2;
+      s.position.set(Math.cos(a) * 0.035, -0.02 * (i % 3), Math.sin(a) * 0.035);
+      s.rotation.set(Math.sin(a) * 0.12, 0, -Math.cos(a) * 0.08 - 0.05);
+      s.scale.set(1.1, 0.85 + (i % 4) * 0.08, 1.1);
       strands.push(s);
     }
     this.x = x; this.z = z;
@@ -286,8 +292,8 @@ class Horse {
     this.swishT -= dt;
     if (this.swishT <= 0) { this.swish = 1; this.swishT = 2 + Math.random() * 7; }
     this.swish = Math.max(0, this.swish - dt * 0.9);
-    this.tail.rotation.x = Math.sin(t * 7) * 0.5 * this.swish;
-    this.tail.rotation.z = -0.25 - this.swish * 0.25;
+    this.tail.rotation.x = Math.sin(t * 6.5) * 0.35 * this.swish + Math.sin(t * 0.7 + this.z) * 0.03;
+    this.tail.rotation.z = -0.12 - this.swish * 0.18;
     // collision circles at chest and hip
     const cx = Math.cos(this.heading), cz = -Math.sin(this.heading);
     this.colliders[0].c[0] = this.x + cx * 0.6; this.colliders[0].c[1] = this.z + cz * 0.6;

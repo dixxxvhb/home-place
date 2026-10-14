@@ -15,6 +15,7 @@ import { buildProps } from './props.js';
 import { buildWater } from './water.js';
 import { Player } from './player.js';
 import { buildHorses } from './horses.js';
+import { buildLife } from './life.js';
 import { Soundscape } from './audio.js';
 
 installAtmosphere();
@@ -105,6 +106,8 @@ async function buildWorld() {
   world.horses = buildHorses(T);
   nearScene.add(world.horses.group);
   world.colliders.push(...world.horses.colliders);
+  world.life = buildLife(T, Q);
+  nearScene.add(world.life.group);
   player = new Player({ camera, world, quality: Q, canvas });
   player.onStep = (cls, speed) => sound.step(cls, speed);
 }
@@ -289,6 +292,7 @@ function frame() {
   sky.update(elapsed);
   if (world.water) world.water.update(dt);
   if (world.horses) world.horses.update(dt, player && player.active ? player.pos : null, sound);
+  if (world.life) world.life.update(dt, camera, innerHeight);
 
   if (mode === 'intro') introCamera(dt);
   else if (mode === 'enter') {

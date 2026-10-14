@@ -666,6 +666,28 @@ export class Soundscape {
       }
     }
 
+    // swallows chatter as they pass; now and then a fly comes by
+    this.swallowT = (this.swallowT ?? 3) - dt;
+    if (this.swallowT <= 0 && this.world.life) {
+      const near = this.world.life.birdPositions().filter((b) => Math.hypot(b[0] - cam.x, b[2] - cam.z) < 35);
+      if (near.length) {
+        if (!this.swallowEm) this.swallowEm = this.emitter(0, 0, 0, { ref: 4 });
+        this.swallowEm.set(...pick(near));
+        this.twitter(this.swallowEm);
+      }
+      this.swallowT = rand(1.5, 5);
+    }
+    this.flyT = (this.flyT ?? rand(8, 20)) - dt;
+    if (this.flyT <= 0) { this.flyBy(cam); this.flyT = rand(14, 40); }
+    if (this.fly) {
+      const f = this.fly;
+      f.t += dt;
+      const a = f.a0 + f.t * f.w;
+      const r = f.r + Math.sin(f.t * 3.1) * 0.25;
+      f.e.set(cam.x + Math.cos(a) * r, cam.y - 0.2 + Math.sin(f.t * 4.7) * 0.25, cam.z + Math.sin(a) * r);
+      if (f.t > f.dur) this.fly = null;
+    }
+
     // the mower crawls back and forth
     const m = this.mower;
     m.until -= dt;
@@ -696,6 +718,31 @@ export class Soundscape {
     pan.pan.value = this.foot * 0.12;
     s.connect(g).connect(pan).connect(this.stepBus);
     s.start(t);
+  }
+
+  twitter(e) {
+    const notes = [];
+    const k = 3 + ((Math.random() * 6) | 0);
+    for (let i = 0; i < k; i++) {
+      const f = rand(3600, 5600);
+      notes.push([f, f * rand(0.75, 1.2), rand(0.018, 0.035), rand(0.02, 0.07), { vib: 300, vibRate: 60 }]);
+    }
+    return this.sing(e, notes, { gain: 0.07 });
+  }
+
+  flyBy(cam) {
+    const ctx = this.ctx, t = ctx.currentTime;
+    const dur = rand(2.5, 4.5);
+    const e = this.emitter(cam.x + 2, cam.y, cam.z, { ref: 0.4, air: false });
+    const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = rand(175, 215);
+    const wob = ctx.createOscillator(); wob.frequency.value = rand(6, 11);
+    const wg = ctx.createGain(); wg.gain.value = 9; wob.connect(wg).connect(o.frequency);
+    const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 900; bp.Q.value = 0.8;
+    const g = ctx.createGain(); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.045, t + 0.4); g.gain.setValueAtTime(0.045, t + dur - 0.6); g.gain.linearRampToValueAtTime(0, t + dur);
+    o.connect(bp).connect(g).connect(e.input);
+    o.start(t); o.stop(t + dur + 0.1); wob.start(t); wob.stop(t + dur + 0.1);
+    this.fly = { e, t: 0, dur, a0: Math.random() * 6.28, w: rand(1.2, 2.2) * (Math.random() < 0.5 ? -1 : 1), r: rand(0.6, 1.4) };
+    setTimeout(() => { const i = this.emitters.indexOf(e); if (i >= 0) this.emitters.splice(i, 1); e.panner.disconnect(); }, (dur + 0.5) * 1000);
   }
 
   hoof(e) {
