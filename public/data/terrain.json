@@ -1,0 +1,23 @@
+{
+ "local": {
+  "file": "local.bin",
+  "n": 200,
+  "base": 1300,
+  "scale": 500,
+  "size": 600
+ },
+ "mid": {
+  "file": "mid.bin",
+  "n": 250,
+  "base": 1300,
+  "scale": 500,
+  "size": 3000
+ },
+ "far": {
+  "file": "far.bin",
+  "n": 512,
+  "base": 1200,
+  "scale": 16,
+  "size": 100000
+ }
+}
