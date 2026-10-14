@@ -130,6 +130,9 @@ const VIEWS = {
   arena: { pos: [-6, 1.68, 20], look: [-40, 1.5, 34] },
   spawn: { pos: [17.5, 1.66, 8.5], look: [0, 2.2, 5] },
   horses: { pos: [-48, 1.68, 18], look: [-62, 0.8, 14] },
+  front: { pos: [21.5, 2.0, 17], look: [-2, 2.4, 2] },
+  garage: { pos: [6, 1.68, -15.5], look: [-14, 1.6, -11] },
+  top: { pos: [-25, 230, 7], look: [-25, 0, 7], top: true },
   horseclose: { pos: [-56.5, 1.5, 7.2], look: [-60, 0.9, 4] },
 };
 let currentView = params.get('view') || 'house';
@@ -139,6 +142,16 @@ function setView(name) {
   const gy = world.T ? world.T.heightAt(v.pos[0], v.pos[2]) : 0;
   const ly = world.T ? world.T.heightAt(v.look[0], v.look[2]) : 0;
   camera.position.set(v.pos[0], v.pos[1] + gy, v.pos[2]);
+  if (v.top) {
+    camera.up.set(0, 0, -1);
+    camera.fov = 25.2;
+    camera.updateProjectionMatrix();
+    farCamera.fov = 25.2;
+    farCamera.updateProjectionMatrix();
+    const r = 120;
+    Object.assign(sunLight.shadow.camera, { left: -r, right: r, top: r, bottom: -r });
+    sunLight.shadow.camera.updateProjectionMatrix();
+  }
   camera.lookAt(v.look[0], v.look[1] + ly, v.look[2]);
 }
 
@@ -272,8 +285,9 @@ function render() {
   farCamera.updateMatrixWorld();
   if (world.grass) world.grass.update(camera, player && player.active ? player.pos : null);
   // shadows cover what's in front of you, snapped to texels so edges don't crawl
-  const r = Q.shadowRadius, texel = (2 * r) / Q.shadowSize;
-  fwd.set(0, 0, -1).applyQuaternion(camera.quaternion).setY(0).normalize().multiplyScalar(r * 0.45);
+  const r = currentView === 'top' && mode === 'preview' ? 120 : Q.shadowRadius, texel = (2 * r) / Q.shadowSize;
+  fwd.set(0, 0, -1).applyQuaternion(camera.quaternion).setY(0);
+  if (fwd.lengthSq() > 1e-4) fwd.normalize().multiplyScalar(r * 0.45); else fwd.set(0, 0, 0);
   const tx = Math.round((camera.position.x + fwd.x) / texel) * texel, tz = Math.round((camera.position.z + fwd.z) / texel) * texel;
   sunLight.target.position.set(tx, camera.position.y - 1.6, tz);
   sunLight.position.copy(sunLight.target.position).addScaledVector(SUN, 300);
