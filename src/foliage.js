@@ -60,3 +60,10 @@ export function foliageDepthMaterial(map) {
   mat.customProgramCacheKey = () => 'foliageDepth';
   return mat;
 }
+
+// The breeze over time: mostly a light morning air, now and then a longer push.
+export function gustAt(t) {
+  const slow = Math.sin(t * 0.083) * Math.sin(t * 0.051 + 1.7);
+  const mid = Math.sin(t * 0.31 + 0.4) * 0.5 + Math.sin(t * 0.47 + 2.1) * 0.3 + Math.sin(t * 0.83 + 4.0) * 0.2;
+  return Math.max(0.18, Math.min(1.0, 0.5 + slow * 0.28 + mid * 0.16));
+}
