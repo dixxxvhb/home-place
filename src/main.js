@@ -18,6 +18,7 @@ import { buildHorses } from './horses.js';
 import { buildLife } from './life.js';
 import { buildValley } from './valley.js';
 import { buildExtras } from './extras.js';
+import { buildGarden } from './garden.js';
 import { Soundscape } from './audio.js';
 
 installAtmosphere();
@@ -104,6 +105,7 @@ async function buildWorld() {
   const props = buildProps(T);
   nearScene.add(props.group);
   world.colliders.push(...props.colliders);
+  nearScene.add(buildGarden(T, Q).group);
   const extras = buildExtras(T);
   nearScene.add(extras.group);
   world.colliders.push(...extras.colliders);
@@ -138,6 +140,7 @@ const VIEWS = {
   front: { pos: [21.5, 2.0, 17], look: [-2, 2.4, 2] },
   garage: { pos: [6, 1.68, -15.5], look: [-14, 1.6, -11] },
   island: { pos: [21, 1.68, 9], look: [12, 0.3, 4] },
+  garden: { pos: [-23, 1.68, 23], look: [-29, 0.2, 10] },
   hoop: { pos: [-30, 1.68, -6], look: [-22, 2.4, -12] },
   sign: { pos: [25, 1.68, -6], look: [19.4, 1.8, -10.6] },
   top: { pos: [-25, 230, 7], look: [-25, 0, 7], top: true },

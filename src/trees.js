@@ -87,6 +87,12 @@ function leafAtlas(size) {
   return tex;
 }
 
+let atlasCache = null;
+export function getLeafAtlas(quality) {
+  if (!atlasCache) atlasCache = leafAtlas(quality.tier === 'high' ? 1024 : 512);
+  return atlasCache;
+}
+
 // ---------- builders ----------
 class Builder {
   constructor() { this.pos = []; this.nrm = []; this.uv = []; this.wind = []; this.col = []; this.idx = []; this.bark = new Map(); }
@@ -280,7 +286,7 @@ export function buildTrees(T, quality) {
     make({ kind, x: p.x + nx * off, z: p.z + nz * off, h, r }, detail * 0.45);
   }
 
-  const atlas = leafAtlas(quality.tier === 'high' ? 1024 : 512);
+  const atlas = getLeafAtlas(quality);
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.Float32BufferAttribute(B.pos, 3));
   g.setAttribute('normal', new THREE.Float32BufferAttribute(B.nrm, 3));
