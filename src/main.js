@@ -49,7 +49,7 @@ const sky = makeSky(Q);
 farScene.add(sky.mesh);
 
 function addLights(scene, withShadow) {
-  scene.add(new THREE.HemisphereLight(SKY_LIGHT, GROUND_LIGHT, 1.2));
+  scene.add(new THREE.HemisphereLight(SKY_LIGHT, GROUND_LIGHT, 1.5));
   const sun = new THREE.DirectionalLight(SUN_COLOR, 4.4);
   sun.position.copy(SUN).multiplyScalar(300);
   scene.add(sun, sun.target);

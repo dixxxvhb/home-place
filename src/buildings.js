@@ -379,7 +379,7 @@ export function buildBuildings(T) {
     trim: patternMaterial({ color: [246, 245, 240], rough: 0.55 }),
     shutter: patternMaterial({ color: [244, 242, 232], pattern: 'louver', rough: 0.6 }),
     found: patternMaterial({ color: [170, 166, 157], pattern: 'concrete', rough: 0.95 }),
-    brick: patternMaterial({ color: [150, 82, 62], pattern: 'concrete', rough: 0.9 }),
+    brick: patternMaterial({ color: [118, 56, 42], pattern: 'brick', rough: 0.9 }),
     shingle: patternMaterial({ color: [104, 108, 102], pattern: 'shingle', rough: 0.95 }),
     shingleDark: patternMaterial({ color: [76, 76, 78], pattern: 'shingle', rough: 0.95 }),
     roofRed: patternMaterial({ color: [128, 52, 50], pattern: 'roofribs', ribAxis: 'x', rough: 0.55, metal: 0.25 }),

@@ -9,7 +9,7 @@ export function detectQuality() {
   return {
     tier,
     touch,
-    dpr: Math.min(window.devicePixelRatio || 1, high ? 2 : 1.6),
+    dpr: Math.min(window.devicePixelRatio || 1, high ? 2 : 1.5),
     msaa: true,
     shadowSize: high ? 4096 : 2048,
     shadowRadius: high ? 42 : 26,

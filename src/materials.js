@@ -86,6 +86,16 @@ export function patternMaterial({ color, pattern = 'none', rough = 0.85, metal =
         float scar = smoothstep(0.7, 0.8, vnoise(vec2(ang * 2.0, vWP.y * 1.3 + 9.0)));
         diffuseColor.rgb *= (1.0 - 0.8 * max(lent, scar * 0.85)) * (0.9 + 0.12 * vnoise(vec2(ang * 8.0, vWP.y * 30.0)));
       `;
+    } else if (pattern === 'brick') {
+      frag = `
+        float bc = (abs(vWN.x) > 0.5 ? vWP.z : vWP.x);
+        float row = floor(vWP.y / 0.075);
+        float bx = fract(bc / 0.2 + row * 0.5);
+        float by = fract(vWP.y / 0.075);
+        float mortar = step(bx, 0.05) + step(by, 0.12);
+        float shade = 0.82 + 0.3 * hash12(vec2(floor(bc / 0.2 + row * 0.5), row));
+        diffuseColor.rgb = mix(diffuseColor.rgb * shade, vec3(0.42, 0.4, 0.36), clamp(mortar, 0.0, 1.0));
+      `;
     } else if (pattern === 'louver') {
       frag = `
         float lv = fract(vWP.y / 0.055);
