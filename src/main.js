@@ -16,6 +16,7 @@ import { buildWater } from './water.js';
 import { Player } from './player.js';
 import { buildHorses } from './horses.js';
 import { buildLife } from './life.js';
+import { buildValley } from './valley.js';
 import { Soundscape } from './audio.js';
 
 installAtmosphere();
@@ -80,6 +81,9 @@ async function buildWorld() {
   farScene.add(buildFarMesh(T, Q));
   nearScene.add(buildMidMesh(T, Q));
   nearScene.add(buildLocalMesh(T, maps, Q));
+  const valley = buildValley(T);
+  nearScene.add(valley.near);
+  farScene.add(valley.far);
   status.textContent = 'Putting up the house';
   await tick();
   const B = buildBuildings(T);
