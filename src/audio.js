@@ -698,6 +698,18 @@ export class Soundscape {
     s.start(t);
   }
 
+  hoof(e) {
+    const ctx = this.ctx, t = ctx.currentTime + 0.01;
+    const s = ctx.createBufferSource(); s.buffer = this.brown;
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 220;
+    const g = ctx.createGain(); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.9, t + 0.006); g.gain.exponentialRampToValueAtTime(0.002, t + 0.12);
+    s.connect(lp).connect(g).connect(e.input); s.start(t, Math.random() * 3); s.stop(t + 0.15);
+    const n = ctx.createBufferSource(); n.buffer = this.white;
+    const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 2600; bp.Q.value = 0.7;
+    const ng = ctx.createGain(); ng.gain.setValueAtTime(0, t); ng.gain.linearRampToValueAtTime(0.08, t + 0.02); ng.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+    n.connect(bp).connect(ng).connect(e.input); n.start(t, Math.random()); n.stop(t + 0.2);
+  }
+
   // horses call through here
   horse(e, what) { if (this.started) this[what](e); }
 

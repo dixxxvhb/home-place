@@ -14,6 +14,7 @@ import { buildGrass } from './grass.js';
 import { buildProps } from './props.js';
 import { buildWater } from './water.js';
 import { Player } from './player.js';
+import { buildHorses } from './horses.js';
 import { Soundscape } from './audio.js';
 
 installAtmosphere();
@@ -99,6 +100,11 @@ async function buildWorld() {
   world.water = buildWater(T, props);
   nearScene.add(world.water.group);
   world.water.resize(camera, innerHeight);
+  status.textContent = 'Letting the horses out';
+  await tick();
+  world.horses = buildHorses(T);
+  nearScene.add(world.horses.group);
+  world.colliders.push(...world.horses.colliders);
   player = new Player({ camera, world, quality: Q, canvas });
   player.onStep = (cls, speed) => sound.step(cls, speed);
 }
@@ -116,6 +122,8 @@ const VIEWS = {
   sprinkler: { pos: [17.5, 1.68, 10.5], look: [8, 1.0, 4] },
   arena: { pos: [-6, 1.68, 20], look: [-40, 1.5, 34] },
   spawn: { pos: [17.5, 1.66, 8.5], look: [0, 2.2, 5] },
+  horses: { pos: [-48, 1.68, 18], look: [-62, 0.8, 14] },
+  horseclose: { pos: [-56.5, 1.5, 7.2], look: [-60, 0.9, 4] },
 };
 let currentView = params.get('view') || 'house';
 function setView(name) {
@@ -280,6 +288,7 @@ function frame() {
   sound.gust = gust;
   sky.update(elapsed);
   if (world.water) world.water.update(dt);
+  if (world.horses) world.horses.update(dt, player && player.active ? player.pos : null, sound);
 
   if (mode === 'intro') introCamera(dt);
   else if (mode === 'enter') {
