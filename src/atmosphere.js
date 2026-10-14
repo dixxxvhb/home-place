@@ -12,9 +12,9 @@ export const SUN = new THREE.Vector3(
   -Math.cos(SUN_ALT) * Math.cos(SUN_AZ),
 ).normalize();
 
-export const SUN_COLOR = new THREE.Color(1.0, 0.9, 0.76);
-export const SKY_LIGHT = new THREE.Color(0.56, 0.68, 0.9);
-export const GROUND_LIGHT = new THREE.Color(0.42, 0.4, 0.27);
+export const SUN_COLOR = new THREE.Color(1.0, 0.83, 0.63);
+export const SKY_LIGHT = new THREE.Color(0.5, 0.63, 0.88);
+export const GROUND_LIGHT = new THREE.Color(0.36, 0.34, 0.22);
 
 const v3 = (v) => `vec3(${v.x.toFixed(6)}, ${v.y.toFixed(6)}, ${v.z.toFixed(6)})`;
 
@@ -34,7 +34,7 @@ vec3 skyColor(vec3 dir) {
   float anti = pow(clamp(-mu, 0.0, 1.0), 2.0);
   col += vec3(0.07, 0.035, 0.06) * horiz * anti;
   float m = max(mu, 0.0);
-  col += vec3(1.0, 0.86, 0.66) * (pow(m, 10.0) * 0.32 + pow(m, 90.0) * 1.1 + pow(m, 900.0) * 3.0);
+  col += vec3(1.0, 0.86, 0.66) * (pow(m, 10.0) * 0.22 + pow(m, 90.0) * 0.55 + pow(m, 900.0) * 1.6);
   return col * 1.25;
 }
 vec3 aerial(vec3 col, vec3 wpos) {
@@ -47,7 +47,7 @@ vec3 aerial(vec3 col, vec3 wpos) {
   float od = 0.000105 * d * hf;
   vec3 ext = 1.0 - exp(-od * vec3(0.82, 1.0, 1.22));
   vec3 fc = skyColor(normalize(vec3(dir.x, max(dir.y, 0.0) * 0.4 + 0.02, dir.z)));
-  fc += vec3(1.0, 0.86, 0.66) * pow(max(dot(dir, SUN_DIR), 0.0), 7.0) * 0.45;
+  fc += vec3(1.0, 0.86, 0.66) * pow(max(dot(dir, SUN_DIR), 0.0), 7.0) * 0.22;
   return mix(col, fc, ext);
 }
 `;
@@ -114,7 +114,7 @@ export function makeSky(quality) {
         vec3 dir = normalize(vDir);
         vec3 col = skyColor(dir);
         float mu = dot(dir, SUN_DIR);
-        col += vec3(1.0, 0.93, 0.82) * smoothstep(0.999982, 0.999992, mu) * 60.0;
+        col += vec3(1.0, 0.93, 0.82) * smoothstep(0.999982, 0.999992, mu) * 30.0;
         if (dir.y > 0.004) {
           float t = 2600.0 / dir.y;
           vec2 p = dir.xz * t * 0.001 + vec2(3.0 + uTime * 0.0035, -5.0);

@@ -14,7 +14,7 @@ export const CLASS = {
 };
 const S = {
   pasture: { col: [98, 104, 48], p1: [0.4, 0.92, 0], p2: [0, CLASS.PASTURE] },
-  lawn: { col: [54, 98, 28], p1: [0.085, 1, 0], p2: [0, CLASS.LAWN] },
+  lawn: { col: [66, 100, 38], p1: [0.085, 1, 0], p2: [0, CLASS.LAWN] },
   worn: { col: [112, 100, 66], p1: [0.1, 0.35, 0.2], p2: [0, CLASS.WORN] },
   gravel: { col: [150, 141, 126], p1: [0.12, 0.035, 1], p2: [0, CLASS.GRAVEL] },
   asphalt: { col: [56, 56, 58], p1: [0, 0, 0], p2: [1, CLASS.ASPHALT] },

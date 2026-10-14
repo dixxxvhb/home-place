@@ -1,4 +1,8 @@
 import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { Pass } from 'three/addons/postprocessing/Pass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { installAtmosphere, makeSky, SUN, SUN_COLOR, SKY_LIGHT, GROUND_LIGHT } from './atmosphere.js';
 import { detectQuality } from './quality.js';
 import { loadTerrain, buildFarMesh, buildMidMesh, buildLocalMesh } from './terrain.js';
@@ -7,6 +11,8 @@ import { buildBuildings } from './buildings.js';
 import { buildTrees } from './trees.js';
 import { WIND } from './foliage.js';
 import { buildGrass } from './grass.js';
+import { buildProps } from './props.js';
+import { buildWater } from './water.js';
 
 installAtmosphere();
 const Q = detectQuality();
@@ -36,9 +42,9 @@ const sky = makeSky(Q);
 farScene.add(sky.mesh);
 
 function addLights(scene, withShadow) {
-  const hemi = new THREE.HemisphereLight(SKY_LIGHT, GROUND_LIGHT, 1.35);
+  const hemi = new THREE.HemisphereLight(SKY_LIGHT, GROUND_LIGHT, 1.2);
   scene.add(hemi);
-  const sun = new THREE.DirectionalLight(SUN_COLOR, 3.6);
+  const sun = new THREE.DirectionalLight(SUN_COLOR, 4.4);
   sun.position.copy(SUN).multiplyScalar(300);
   scene.add(sun);
   scene.add(sun.target);
@@ -73,6 +79,12 @@ async function buildWorld() {
   const trees = buildTrees(T, Q);
   nearScene.add(trees.group);
   world.colliders.push(...trees.colliders);
+  const props = buildProps(T);
+  nearScene.add(props.group);
+  world.colliders.push(...props.colliders);
+  world.water = buildWater(T, props);
+  nearScene.add(world.water.group);
+  world.water.resize(camera, innerHeight);
   const v = VIEWS[currentView];
   camera.position.y = T.heightAt(camera.position.x, camera.position.z) + v.pos[1];
 }
@@ -87,6 +99,8 @@ const VIEWS = {
   pasture: { pos: [-62, 1.68, 6], look: [-5, 3, -4] },
   air: { pos: [70, 46, 70], look: [-15, 0, -2] },
   road: { pos: [23, 1.68, 30], look: [10, 3, -6] },
+  sprinkler: { pos: [17.5, 1.68, 10.5], look: [8, 1.0, 4] },
+  arena: { pos: [-6, 1.68, 20], look: [-40, 1.5, 34] },
 };
 let currentView = 'lawn';
 function setView(name) {
@@ -105,24 +119,52 @@ function resize() {
   camera.aspect = farCamera.aspect = w / h;
   camera.updateProjectionMatrix();
   farCamera.updateProjectionMatrix();
+  if (composer) composer.setSize(w, h);
+  if (world.water) world.water.resize(camera, h);
 }
 addEventListener('resize', resize);
 
 const clock = new THREE.Timer();
 let elapsed = 0;
 
+// Far pass then near pass, into whatever target the composer hands us.
+class WorldPass extends Pass {
+  constructor() { super(); this.needsSwap = false; }
+  render(r, writeBuffer, readBuffer) {
+    r.setRenderTarget(this.renderToScreen ? null : readBuffer);
+    drawWorld();
+  }
+}
+function drawWorld() {
+  renderer.clear(true, true, true);
+  renderer.render(farScene, farCamera);
+  renderer.clearDepth();
+  renderer.render(nearScene, camera);
+}
+
+let composer = null;
+if (Q.bloom) {
+  const rt = new THREE.WebGLRenderTarget(innerWidth * Q.dpr, innerHeight * Q.dpr, { type: THREE.HalfFloatType, samples: 4 });
+  composer = new EffectComposer(renderer, rt);
+  composer.setPixelRatio(Q.dpr);
+  composer.addPass(new WorldPass());
+  composer.addPass(new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.2, 0.4, 1.6));
+  composer.addPass(new OutputPass());
+}
+
 function render() {
   if (world.grass) world.grass.update(camera, null);
   farCamera.position.copy(camera.position);
   farCamera.quaternion.copy(camera.quaternion);
   farCamera.updateMatrixWorld();
-  sunLight.target.position.set(camera.position.x, 0, camera.position.z);
+  // keep the shadow map centered on the viewer, snapped to its texels so edges don't crawl
+  const r = Q.shadowRadius, texel = (2 * r) / Q.shadowSize;
+  const tx = Math.round(camera.position.x / texel) * texel, tz = Math.round(camera.position.z / texel) * texel;
+  sunLight.target.position.set(tx, camera.position.y - 1.6, tz);
   sunLight.position.copy(sunLight.target.position).addScaledVector(SUN, 300);
-  renderer.setRenderTarget(null);
-  renderer.clear(true, true, true);
-  renderer.render(farScene, farCamera);
-  renderer.clearDepth();
-  renderer.render(nearScene, camera);
+  sunLight.target.updateMatrixWorld();
+  if (composer) composer.render();
+  else { renderer.setRenderTarget(null); drawWorld(); }
 }
 
 function frame() {
@@ -131,6 +173,7 @@ function frame() {
   elapsed += dt;
   sky.update(elapsed);
   WIND.uTime.value = elapsed;
+  if (world.water) world.water.update(dt);
   if (world.grass) world.grass.update(camera, null);
   render();
   requestAnimationFrame(frame);
