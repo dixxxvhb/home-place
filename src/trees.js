@@ -265,7 +265,7 @@ function spruce(B, R, t, y0, detail) {
   return { collider: { c: [x, z], r: 0.45 } };
 }
 
-export function buildTrees(T, quality) {
+export function buildTrees(T, quality, extra = []) {
   const R = rng(23);
   const B = new Builder();
   const colliders = [];
@@ -276,6 +276,7 @@ export function buildTrees(T, quality) {
     colliders.push(res.collider);
   };
   TREES.forEach((t) => make(t, detail));
+  extra.forEach((t) => make(t, detail * 0.5));
   // the grove along the lane, down the bluff
   for (const p of samplePolyline(GROVE_LINE, 8.5)) {
     const nx = -Math.sin(p.ang), nz = Math.cos(p.ang);

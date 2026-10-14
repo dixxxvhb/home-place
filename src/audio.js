@@ -1,6 +1,7 @@
 // Everything you hear, synthesized with the Web Audio API. Nothing is a recording.
 import { SPRINKLERS, TREES, ROAD_WIDTH, roadX, WHEEL_LINE, PASTURE_WEST, PIT, SHOP } from './layout.js';
 import { CLASS } from './groundmap.js';
+import { canalNearest } from './canal.js';
 
 const rand = (a, b) => a + Math.random() * (b - a);
 const pick = (arr) => arr[(Math.random() * arr.length) | 0];
@@ -321,13 +322,22 @@ export class Soundscape {
   }
 
   buildDitch() {
-    // irrigation water in the ditch along the road; the sound follows to the nearest point
+    // the canal across the road: a steady push of water; the sound follows to the nearest point
     const ctx = this.ctx;
-    this.ditch = this.emitter(30, -1, 0, { ref: 2.5 });
+    this.ditch = this.emitter(30, -1, 0, { ref: 4 });
     const src = this.loop(this.white, 1);
-    const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 900; bp.Q.value = 0.7;
-    const g = ctx.createGain(); g.gain.value = 0.05;
+    const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 850; bp.Q.value = 0.6;
+    const g = ctx.createGain(); g.gain.value = 0.075;
+    const lo = this.loop(this.brown, 0.8);
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 380;
+    const lg = ctx.createGain(); lg.gain.value = 0.12;
+    // slow swells in the flow
+    const mod = this.loop(this.white, 0.015);
+    const mlp = ctx.createBiquadFilter(); mlp.type = 'lowpass'; mlp.frequency.value = 2;
+    const md = ctx.createGain(); md.gain.value = 0.03;
+    mod.connect(mlp).connect(md).connect(g.gain);
     src.connect(bp).connect(g).connect(this.ditch.input);
+    lo.connect(lp).connect(lg).connect(this.ditch.input);
     this.ditchBubbles = 0;
   }
 
@@ -639,16 +649,14 @@ export class Soundscape {
       rec.land.set(lx, this.world.T.heightAt(lx, lz) + 0.1, lz);
     }
 
-    // the ditch: nearest point along the road's east side
+    // the canal: nearest point along its centerline
     {
-      const z = Math.max(-150, Math.min(150, cam.z));
-      const x = roadX(z) + ROAD_WIDTH / 2 + 3.3;
-      this.ditch.set(x, this.world.T.heightAt(x, z) + 0.2, z);
-      const dd = Math.hypot(x - cam.x, z - cam.z);
+      const n = canalNearest(cam.x, cam.z);
+      this.ditch.set(n.x, this.world.T.heightAt(n.x, n.z) + 0.6, n.z);
       this.ditchBubbles -= dt;
-      if (this.ditchBubbles <= 0 && dd < 40) {
-        this.bubble(this.ditch, rand(320, 900), rand(0.04, 0.12));
-        this.ditchBubbles = rand(0.03, 0.16);
+      if (this.ditchBubbles <= 0 && n.d < 45) {
+        this.bubble(this.ditch, rand(260, 820), rand(0.05, 0.14));
+        this.ditchBubbles = rand(0.02, 0.1);
       }
     }
     // the wheel line ticks too, far off

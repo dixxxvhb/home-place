@@ -19,6 +19,7 @@ import { buildLife } from './life.js';
 import { buildValley } from './valley.js';
 import { buildExtras } from './extras.js';
 import { buildGarden } from './garden.js';
+import { buildCanal } from './canal.js';
 import { Soundscape } from './audio.js';
 
 installAtmosphere();
@@ -97,7 +98,10 @@ async function buildWorld() {
   await tick();
   world.grass = buildGrass(T, maps, Q);
   nearScene.add(world.grass.group);
-  const trees = buildTrees(T, Q);
+  world.canal = buildCanal(T);
+  nearScene.add(world.canal.mesh);
+  world.colliders.push(...world.canal.colliders);
+  const trees = buildTrees(T, Q, world.canal.trees);
   nearScene.add(trees.group);
   world.colliders.push(...trees.colliders);
   status.textContent = 'Turning on the sprinklers';
@@ -143,6 +147,7 @@ const VIEWS = {
   garden: { pos: [-23, 1.68, 23], look: [-29, 0.2, 10] },
   hoop: { pos: [-30, 1.68, -6], look: [-22, 2.4, -12] },
   sign: { pos: [25, 1.68, -6], look: [19.4, 1.8, -10.6] },
+  canal: { pos: [30.5, 1.68, 16], look: [40, 0, 2] },
   top: { pos: [-25, 230, 7], look: [-25, 0, 7], top: true },
   horseclose: { pos: [-56.5, 1.5, 7.2], look: [-60, 0.9, 4] },
 };
@@ -338,6 +343,7 @@ function frame() {
   sound.gust = gust;
   sky.update(elapsed);
   if (world.water) world.water.update(dt);
+  if (world.canal) world.canal.update(elapsed);
   if (world.horses) world.horses.update(dt, player && player.active ? player.pos : null, sound);
   if (world.life) world.life.update(dt, camera, innerHeight);
 
