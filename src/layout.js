@@ -98,7 +98,6 @@ export const TREES = [
   { kind: 'ash', x: 9.6, z: -16.4, h: 15.5, r: 6.4 },
   { kind: 'maple', x: -3.0, z: 18.8, h: 11, r: 5.2 },
   { kind: 'ash', x: -15.5, z: 17.8, h: 13, r: 5.6 },
-  { kind: 'spruce', x: -24.5, z: -9.5, h: 11.5, r: 3.4 },
   // the north neighbor's yard
   { kind: 'ash', x: 21, z: -42, h: 15, r: 6.5 },
   { kind: 'maple', x: -6.5, z: -41.5, h: 11, r: 5 },

@@ -17,6 +17,7 @@ import { Player } from './player.js';
 import { buildHorses } from './horses.js';
 import { buildLife } from './life.js';
 import { buildValley } from './valley.js';
+import { buildExtras } from './extras.js';
 import { Soundscape } from './audio.js';
 
 installAtmosphere();
@@ -103,6 +104,9 @@ async function buildWorld() {
   const props = buildProps(T);
   nearScene.add(props.group);
   world.colliders.push(...props.colliders);
+  const extras = buildExtras(T);
+  nearScene.add(extras.group);
+  world.colliders.push(...extras.colliders);
   world.water = buildWater(T, props);
   nearScene.add(world.water.group);
   world.water.resize(camera, innerHeight);
@@ -133,6 +137,9 @@ const VIEWS = {
   horses: { pos: [-48, 1.68, 18], look: [-62, 0.8, 14] },
   front: { pos: [21.5, 2.0, 17], look: [-2, 2.4, 2] },
   garage: { pos: [6, 1.68, -15.5], look: [-14, 1.6, -11] },
+  island: { pos: [21, 1.68, 9], look: [12, 0.3, 4] },
+  hoop: { pos: [-30, 1.68, -6], look: [-22, 2.4, -12] },
+  sign: { pos: [25, 1.68, -6], look: [19.4, 1.8, -10.6] },
   top: { pos: [-25, 230, 7], look: [-25, 0, 7], top: true },
   horseclose: { pos: [-56.5, 1.5, 7.2], look: [-60, 0.9, 4] },
 };
