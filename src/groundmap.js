@@ -2,8 +2,10 @@ import * as THREE from 'three';
 import { MAP } from './terrain.js';
 import {
   ROAD_SMOOTH, ROAD_WIDTH, roadX, DIRT_NE, LANE_NW, DRIVE, DRIVE_WIDTH, FRONT_PAD, LAWN, GRAVEL,
-  NEIGHBOR_LAWNS, ARENA, HOUSE, SHOP, HORSE_SHED, TREES, SPRINKLERS, NEIGHBORS, PASTURE_WEST,
+  NEIGHBOR_LAWNS, ARENA, HOUSE, SHOP, HORSE_SHED, UTILITY_SHED, TREES, SPRINKLERS, NEIGHBORS, PASTURE_WEST,
+  APRON, SIDEWALK, ROCKS, GARDEN, PIT, CANAL_SHAPE,
 } from './layout.js';
+import { CANAL_PTS } from './terrain.js';
 import { rng, smoothLine } from './geo.js';
 
 // Surface kinds. col = albedo (sRGB), p1 = [grass height m, grass density, gravel],
@@ -26,6 +28,8 @@ const S = {
   ditch: { col: [66, 82, 38], p1: [0.85, 0.8, 0], p2: [0, CLASS.DITCH] },
   dirt: { col: [128, 106, 78], p1: [0.1, 0.06, 0.3], p2: [0, CLASS.DIRT] },
   garden: { col: [80, 60, 42], p1: [0, 0, 0], p2: [0, CLASS.GARDEN] },
+  rock: { col: [150, 146, 138], p1: [0.06, 0.02, 1], p2: [0, CLASS.GRAVEL] },
+  mud: { col: [70, 62, 48], p1: [0, 0, 0], p2: [0, CLASS.DIRT] },
   under: { col: [120, 116, 110], p1: [0, 0, 0], p2: [1, CLASS.CONCRETE] },
 };
 
@@ -83,8 +87,9 @@ export function paintGround(quality) {
     blob(x, z, r, R() < 0.5 ? [74, 112, 52] : [36, 66, 26], 0.2);
   }
 
-  // 3. ditch, shoulders, road
-  stroke('ditch', roadPts.map(([x, z]) => [x + ROAD_WIDTH / 2 + 3.3, z]), 3.2);
+  // 3. the canal and its weedy banks, then shoulders and road
+  stroke('ditch', CANAL_PTS, CANAL_SHAPE.top + 4.6);
+  stroke('mud', CANAL_PTS, CANAL_SHAPE.top - 0.6);
   stroke('shoulder', roadPts, ROAD_WIDTH + 3.0);
   stroke('road', roadPts, ROAD_WIDTH);
   stroke('dirt', smoothLine(DIRT_NE, 6), 4.0);
@@ -95,10 +100,13 @@ export function paintGround(quality) {
   fill('lawn', LAWN);
   NEIGHBOR_LAWNS.forEach((p) => fill('lawn', p));
   rect('sand', ARENA);
-  rect('dirt', [HORSE_SHED.rect[0] - 1, HORSE_SHED.rect[1] - 0.5, HORSE_SHED.rect[2] + 3, HORSE_SHED.rect[3] + 0.5]);
+  rect('dirt', [UTILITY_SHED.rect[0] - 1, UTILITY_SHED.rect[1] - 0.5, UTILITY_SHED.rect[2] + 3, UTILITY_SHED.rect[3] + 0.5]);
+  fill('rock', ROCKS);
+  // the garden: turned soil in rows running north-south
+  rect('garden', GARDEN);
 
   // horse traffic wears the pasture bare by the gate, the trough and the shed
-  const wear = [[-47.5, 6.8, 5], [-52, 10, 3.5], [-48, 40, 4], [-60, 30, 2.5]];
+  const wear = [[-47.5, 6.8, 5], [-52, 10, 3.5], [-48, 40, 4], [-60, 30, 2.5], [-38.5, -31.7, 4], [-31.7, -37, 2.5]];
   wear.forEach(([x, z, r]) => styles('worn').forEach((st, i) => {
     const ctx = layers[i].ctx; ctx.fillStyle = st; ctx.beginPath(); ctx.ellipse(x, z, r, r * 0.8, 0.4, 0, Math.PI * 2); ctx.fill();
   }));
@@ -108,18 +116,27 @@ export function paintGround(quality) {
 
   // 5. hard surfaces
   rect('concrete', FRONT_PAD);
-  rect('concrete', HOUSE.patio);
-  rect('concrete', [SHOP.rect[2], -27.2, SHOP.rect[2] + 6.5, -19.0]);
+  rect('concrete', APRON);
+  rect('concrete', SIDEWALK);
+  rect('under', PIT.rect);
   stroke('asphalt', smoothLine(DRIVE, 6), DRIVE_WIDTH);
   // under the buildings
   rect('under', [HOUSE.main[0], HOUSE.main[1], HOUSE.main[2] + 0.6, HOUSE.main[3]]);
   rect('under', HOUSE.garage);
   rect('under', SHOP.rect);
   rect('under', SHOP.leanTo);
+  rect('under', HORSE_SHED.rect);
+  rect('under', UTILITY_SHED.rect);
   NEIGHBORS.forEach((n) => rect('under', n.rect));
 
   // 6. light only: wet rings from the sprinklers, shade under trees and at the walls
   const C = COL.ctx;
+  for (let x = GARDEN[0] + 0.45; x < GARDEN[2]; x += 0.9) {
+    C.fillStyle = 'rgba(40,28,18,0.35)';
+    C.fillRect(x - 0.12, GARDEN[1] + 0.3, 0.24, GARDEN[3] - GARDEN[1] - 0.6);
+    C.fillStyle = 'rgba(150,120,90,0.25)';
+    C.fillRect(x + 0.2, GARDEN[1] + 0.3, 0.3, GARDEN[3] - GARDEN[1] - 0.6);
+  }
   C.globalCompositeOperation = 'multiply';
   for (const s of SPRINKLERS) {
     const g = C.createRadialGradient(s.x, s.z, 0, s.x, s.z, s.radius + 1);
@@ -142,6 +159,8 @@ export function paintGround(quality) {
   };
   wallShade([HOUSE.garage[0], HOUSE.main[1], HOUSE.main[2] + 0.6, HOUSE.main[3]], 1.2);
   wallShade(SHOP.rect, 1.4);
+  wallShade(HORSE_SHED.rect, 1.0);
+  wallShade(UTILITY_SHED.rect, 1.2);
   C.globalCompositeOperation = 'source-over';
 
   // ---- pack into textures ----

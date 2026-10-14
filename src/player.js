@@ -109,6 +109,9 @@ export class Player {
   groundAt(x, z) {
     let y = this.world.T.heightAt(x, z);
     let surface = null;
+    for (const p of this.world.pits) {
+      if (x > p.r[0] && x < p.r[2] && z > p.r[1] && z < p.r[3]) { y = p.y; surface = 'hard'; }
+    }
     for (const p of this.world.platforms) {
       if (x > p.r[0] && x < p.r[2] && z > p.r[1] && z < p.r[3] && p.y > y && p.y - this.footY < 0.42) { y = p.y; surface = 'hard'; }
     }

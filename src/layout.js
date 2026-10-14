@@ -35,18 +35,34 @@ export function roadX(z) {
 // Buildings: axis-aligned footprints [x0, z0, x1, z1].
 export const HOUSE = {
   main: [-10, -13, 0, 13.7],        // the long front wing, gable ridge north-south
-  garage: [-19.6, -13, -10, -3.4],   // back wing on the north end, doors face the shop
-  patio: [-15.5, -3.4, -10, 13.7],   // covered back patio
+  garage: [-19.6, -13, -10, -3.4],   // back wing on the north end; the big doors face west
   bump: [0, -7.6, 0.6, -0.6],        // front room that steps forward
   floorY: 0.55,
   eaveY: 3.05,
+  sideDoorX: -7.4,                   // north wall, lines up with the shop's walk door
 };
-export const SHOP = { rect: [-17, -28.1, 3, -18.1], eaveY: 5.0, leanTo: [-22.2, -28.4, -17, -19.4] };
-export const HORSE_SHED = { rect: [-38.5, 24.2, -30.2, 36.5] };
+// Out back: a deck off the sliding door, looking down into a walled pit at basement level,
+// with stairs down on the south end.
+export const PIT = { rect: [-15.6, -2.2, -10, 11.6], depth: 2.15, stairs: [-15.6, 10.3, -11.7, 11.6] };
+export const DECK = [-13.0, 1.4, -10, 7.2];
+export const SHOP = { rect: [-17, -28.1, 3, -18.1], eaveY: 5.0, leanTo: [-22.2, -28.4, -17, -19.4], walkDoorX: -7.4 };
+// The concrete pull-in from the shop's big door all the way to the road.
+export const APRON = [3, -26.6, 24.4, -19.6];
+export const SIDEWALK = [-8.0, -18.1, -6.8, -13.0];
+// Mowers and four-wheelers lived in this one.
+export const UTILITY_SHED = { rect: [-38.5, 24.2, -30.2, 36.5] };
+// The real horse shed: small and square, open to the north pasture, our door on the north side.
+export const HORSE_SHED = { rect: [-35, -35, -28.5, -28.5] };
+export const HOOP = [-25.6, -14.0];
+export const GARDEN = [-33, -2.4, -24.6, 21.4];
+export const SIGN = { x: 19.4, z: -10.6, lines: ['BOWLES STATELINE', 'DAIRY EQUIPMENT'] };
+// A low wall of fieldstone in the island inside the circular drive, following the slope down.
+export const ROCK_WALL = [[17.6, 13.2], [14.2, 10.2], [12.5, 5.8], [12.4, 1.6], [13.6, -1.4], [15.6, -3.4]];
+export const ROCKS = [[3, -26.6], [24.6, -26.6], [26.6, -38.5], [3, -38.5]];
 export const ARENA = [-43.7, 22.9, 9.6, 45.1];
 
 export const NEIGHBORS = [
-  { rect: [-2, -66, 16, -50], roof: 'red', y: 0 },        // north, the red-roof place
+  { rect: [-3, -58, 17, -44], roof: 'red', y: 0 },        // north, right past the rocks
   { rect: [-42, 60, -26, 74], roof: 'dark', y: 0 },       // south, with its own loop drive
   { rect: [-83, 70, -71, 85], roof: 'metal', y: 0, shop: true },
   { rect: [64, -131, 80, -114], roof: 'blue', y: 0 },     // across the road, north
@@ -64,14 +80,13 @@ export const FRONT_PAD = [0.3, 0.9, 3.4, 4.3];   // concrete landing at the fron
 export const FRONT_DOOR_Z = 2.6;
 
 export const LAWN = [
-  [0.4, -13.2], [20.4, -13.6], [16.0, 22.2], [-33, 22.2], [-33, -3.0], [-19.6, -3.0], [-19.6, -13.2],
+  [-20.0, -18.0], [3.0, -18.0], [3.0, -19.4], [22.6, -19.4], [17.2, 22.2], [-33, 22.2], [-33, -3.0], [-20.0, -3.0],
 ];
 export const GRAVEL = [
-  [-46, -40], [9, -40], [17, -30], [21.5, -17.6], [21.5, -14.8], [0.4, -13.4], [-20.2, -13.4],
-  [-20.2, -3.4], [-33.4, -3.4], [-33.4, 22.4], [-46, 22.4],
+  [-46, -40], [3, -40], [3, -18], [-20.2, -18.0], [-20.2, -3.4], [-33.4, -3.4], [-33.4, 22.4], [-46, 22.4],
 ];
 export const NEIGHBOR_LAWNS = [
-  [[-8, -74], [21, -74], [21.5, -44], [-8, -44]],
+  [[-8, -64], [22, -64], [24.6, -39.5], [-8, -39.5]],
   [[-48, 54], [-18, 54], [-18, 80], [-48, 80]],
 ];
 
@@ -80,14 +95,14 @@ export const TREES = [
   { kind: 'birch', x: 2.6, z: 10.6, h: 10.5, r: 3.6, stems: 3 },
   { kind: 'birch', x: 4.0, z: 13.4, h: 9.0, r: 3.0, stems: 2 },
   { kind: 'spruce', x: 12.4, z: -4.8, h: 14.5, r: 4.4 },
-  { kind: 'ash', x: 10.6, z: -18.6, h: 15.5, r: 6.4 },
+  { kind: 'ash', x: 9.6, z: -16.4, h: 15.5, r: 6.4 },
   { kind: 'maple', x: -3.0, z: 18.8, h: 11, r: 5.2 },
   { kind: 'ash', x: -15.5, z: 17.8, h: 13, r: 5.6 },
   { kind: 'spruce', x: -24.5, z: -9.5, h: 11.5, r: 3.4 },
   // the north neighbor's yard
-  { kind: 'ash', x: 15, z: -46, h: 15, r: 6.5 },
-  { kind: 'maple', x: -6, z: -48, h: 11, r: 5 },
-  { kind: 'spruce', x: 18.5, z: -70, h: 13, r: 4 },
+  { kind: 'ash', x: 21, z: -42, h: 15, r: 6.5 },
+  { kind: 'maple', x: -6.5, z: -41.5, h: 11, r: 5 },
+  { kind: 'spruce', x: 20, z: -61, h: 13, r: 4 },
   // south neighbor
   { kind: 'ash', x: -20, z: 66, h: 12, r: 5 },
   { kind: 'spruce', x: -45, z: 58, h: 10, r: 3.2 },
@@ -101,8 +116,10 @@ export const FENCES = [
   { type: 'board', pts: [[-45, -18], [-92, -18], [-92, 50], [-45, 50], [-45, 45.1]], gate: null },
   { type: 'board', pts: [[-45, 22.9], [-45, 9], ], gate: null },
   { type: 'board', pts: [[-45, 4.5], [-45, -18]], gate: null },
-  // northwest pasture
-  { type: 'board', pts: [[-24, -18], [-24, -42], [-92, -42], [-92, -18]], gate: null },
+  // north pasture: its east side runs into the horse shed, which opens onto it
+  { type: 'board', pts: [[-35, -18], [-45, -18]] },
+  { type: 'board', pts: [[-35, -18], [-35, -28.5]] },
+  { type: 'board', pts: [[-35, -35], [-35, -42], [-92, -42], [-92, -18]] },
   // arena, pipe rail
   { type: 'pipe', pts: [[-43.7, 22.9], [-14.5, 22.9]] },
   { type: 'pipe', pts: [[-10.5, 22.9], [9.6, 22.9], [9.6, 45.1], [-43.7, 45.1], [-43.7, 22.9]] },
@@ -115,8 +132,15 @@ export const FENCES = [
   { type: 'wire', pts: [[-150, 50], [-150, -40]] },
   // field across the road
   { type: 'wire', pts: [[31.5, -60], [28.6, -2]] },
-  { type: 'wire', pts: [[32.6, 5], [27.0, 48], [16, 112]] },
 ];
+
+// The big irrigation canal across the road: down the road's east side, then off to the
+// northeast alongside the dirt farm road.
+export const CANAL = [
+  [12.8, 120], [20.9, 80], [27.0, 50], [29.2, 36], [32.6, 22], [36.0, 11], [38.6, 4.5],
+  [75.7, -47.9], [115.7, -103.9], [173.7, -200], [283.7, -350],
+];
+export const CANAL_SHAPE = { top: 7.2, bottom: 2.6, depth: 1.75, water: 0.85 };
 
 export const LAMP_POST = [16.9, 20.6];
 export const MAILBOX = [19.6, 23.4];
@@ -128,11 +152,11 @@ export const SPRINKLERS = [
 ];
 
 // Wheel line irrigation in the field across the road.
-export const WHEEL_LINE = { x: 78, z0: -170, z1: 150, spacing: 12.2 };
+export const WHEEL_LINE = { x: 78, z0: -36, z1: 150, spacing: 12.2 };
 
 // Horses graze the west pasture.
 export const PASTURE_WEST = [-91, -17, -46, 49];
-export const PASTURE_NW = [-91, -41, -25, -19];
+export const PASTURE_NW = [-91, -41, -36, -19];
 
 // Where you can walk.
 export const WALK_BOUNDS = [-205, -120, 64, 135];

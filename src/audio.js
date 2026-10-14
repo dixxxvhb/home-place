@@ -1,5 +1,5 @@
 // Everything you hear, synthesized with the Web Audio API. Nothing is a recording.
-import { SPRINKLERS, TREES, ROAD_WIDTH, roadX, WHEEL_LINE, PASTURE_WEST, HOUSE, SHOP } from './layout.js';
+import { SPRINKLERS, TREES, ROAD_WIDTH, roadX, WHEEL_LINE, PASTURE_WEST, PIT, SHOP } from './layout.js';
 import { CLASS } from './groundmap.js';
 
 const rand = (a, b) => a + Math.random() * (b - a);
@@ -701,7 +701,7 @@ export class Soundscape {
     m.g.gain.setTargetAtTime(m.on ? 0.22 + Math.sin(now * 0.7) * 0.04 : 0, now, m.on ? 1.5 : 0.6);
 
     // under a roof, footsteps get a little room
-    const under = player && ((player.pos.x > HOUSE.patio[0] - 0.3 && player.pos.x < HOUSE.patio[2] && player.pos.z > HOUSE.patio[1] && player.pos.z < HOUSE.patio[3]) ||
+    const under = player && ((player.pos.x > PIT.rect[0] && player.pos.x < PIT.rect[2] && player.pos.z > PIT.rect[1] && player.pos.z < PIT.rect[3]) ||
       (player.pos.x > SHOP.leanTo[0] && player.pos.x < SHOP.leanTo[2] && player.pos.z > SHOP.leanTo[1] && player.pos.z < SHOP.leanTo[3]));
     this.roomSend.gain.setTargetAtTime(under ? 0.5 : 0.0, now, 0.2);
   }

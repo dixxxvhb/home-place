@@ -1,12 +1,37 @@
 import * as THREE from 'three';
 import { NOISE } from './glsl.js';
-import { DEM_CENTER, HOUSE, SHOP, ARENA, roadX, ROAD_WIDTH } from './layout.js';
-import { clamp, smoothstep, lerp, rectOutside } from './geo.js';
+import { DEM_CENTER, HOUSE, SHOP, ARENA, roadX, ROAD_WIDTH, CANAL, CANAL_SHAPE, PIT } from './layout.js';
+import { clamp, smoothstep, lerp, rectOutside, smoothLine, segDist } from './geo.js';
 
 // The painted, walkable square around the property.
 export const MAP = { x0: -222, z0: -192, size: 384 };
 
 const R_EFF = 6371000 / 0.87; // earth radius, stretched for refraction
+
+// The canal channel: a trapezoid cut with a low spoil bank on each side.
+export const CANAL_PTS = smoothLine(CANAL, 6);
+const CB = CANAL_PTS.reduce((b, [x, z]) => [Math.min(b[0], x), Math.min(b[1], z), Math.max(b[2], x), Math.max(b[3], z)], [1e9, 1e9, -1e9, -1e9]);
+export function canalDistance(x, z) {
+  if (x < CB[0] - 12 || x > CB[2] + 12 || z < CB[1] - 12 || z > CB[3] + 12) return Infinity;
+  let best = Infinity;
+  for (let i = 0; i < CANAL_PTS.length - 1; i++) {
+    const a = CANAL_PTS[i], b = CANAL_PTS[i + 1];
+    if (Math.min(a[0], b[0]) - 12 > x || Math.max(a[0], b[0]) + 12 < x || Math.min(a[1], b[1]) - 12 > z || Math.max(a[1], b[1]) + 12 < z) continue;
+    const d = segDist(x, z, a[0], a[1], b[0], b[1]).d;
+    if (d < best) best = d;
+  }
+  return best;
+}
+function canalCut(x, z) {
+  const d = canalDistance(x, z);
+  const C = CANAL_SHAPE;
+  if (d > C.top / 2 + 2.2) return 0;
+  if (d <= C.bottom / 2) return -C.depth;
+  if (d <= C.top / 2) return -C.depth * (1 - smoothstep(C.bottom / 2, C.top / 2, d) * 0.98) - 0.0;
+  // spoil bank
+  const t = (d - C.top / 2) / 2.2;
+  return 0.3 * Math.sin(Math.PI * Math.min(1, t)) * (1 - t * 0.3);
+}
 
 export async function loadTerrain() {
   const meta = await (await fetch('./data/terrain.json')).json();
@@ -41,7 +66,8 @@ export async function loadTerrain() {
   };
 
   const ELEV0 = elevation(-5, 0);
-  const raw = (x, z) => elevation(x, z) - ELEV0;
+  const rawBase = (x, z) => elevation(x, z) - ELEV0;
+  const raw = (x, z) => rawBase(x, z) + canalCut(x, z);
 
   // Level pads under the buildings and the arena, a crowned road, and a ditch on the field side.
   const pad = (r, margin) => {
@@ -74,9 +100,6 @@ export async function loadTerrain() {
         const crown = ad < half ? 0.1 * (1 - (ad / half) ** 2) : 0;
         h = lerp(ry + crown, h, smoothstep(half + 0.8, half + 3.5, ad));
       }
-      // irrigation ditch on the east side
-      const dd = Math.abs(dx - (half + 3.3));
-      if (dd < 1.6) h -= 0.75 * (1 - (dd / 1.6) ** 2) * smoothstep(-185, -150, z) * (1 - smoothstep(150, 185, z));
       // shallow borrow on the west side
       const dw = Math.abs(dx + half + 2.0);
       if (dw < 1.2) h -= 0.18 * (1 - (dw / 1.2) ** 2);
@@ -105,7 +128,7 @@ export async function loadTerrain() {
   heightTex.minFilter = THREE.LinearFilter;
   heightTex.needsUpdate = true;
 
-  return { raw, heightAt, heightTex, pads, N, ELEV0 };
+  return { raw, rawBase, heightAt, heightTex, pads, N, ELEV0 };
 }
 
 function toHalf(f32) {
@@ -239,6 +262,7 @@ export function buildLocalMesh(T, maps, quality) {
     uColorMap: { value: maps.colorTex },
     uParamMap: { value: maps.paramTex },
     uMapRect: { value: new THREE.Vector4(MAP.x0, MAP.z0, MAP.size, 1 / MAP.size) },
+    uPit: { value: new THREE.Vector4(...PIT.rect) },
   };
   mat.onBeforeCompile = (s) => {
     Object.assign(s.uniforms, uniforms);
@@ -252,6 +276,7 @@ export function buildLocalMesh(T, maps, quality) {
         uniform sampler2D uColorMap;
         uniform sampler2D uParamMap;
         uniform vec4 uMapRect;
+        uniform vec4 uPit;
         ${NOISE}
         ${LAND_GLSL}`)
       .replace('#include <map_fragment>', GROUND_DETAIL);
@@ -264,6 +289,7 @@ export function buildLocalMesh(T, maps, quality) {
 // Close-up texture for the painted ground: grit in the gravel, aggregate in the asphalt,
 // mowing stripes in the lawn that flip as you walk around them.
 const GROUND_DETAIL = /* glsl */ `
+  if (vWP.x > uPit.x && vWP.x < uPit.z && vWP.z > uPit.y && vWP.z < uPit.w) discard;
   vec2 muv = (vWP.xz - uMapRect.xy) * uMapRect.w;
   vec3 base = texture2D(uColorMap, muv).rgb;
   vec4 prm = texture2D(uParamMap, muv);

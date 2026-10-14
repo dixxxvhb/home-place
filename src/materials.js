@@ -96,6 +96,13 @@ export function patternMaterial({ color, pattern = 'none', rough = 0.85, metal =
         float shade = 0.82 + 0.3 * hash12(vec2(floor(bc / 0.2 + row * 0.5), row));
         diffuseColor.rgb = mix(diffuseColor.rgb * shade, vec3(0.42, 0.4, 0.36), clamp(mortar, 0.0, 1.0));
       `;
+    } else if (pattern === 'deck') {
+      frag = `
+        float dc = vWP.z / 0.145;
+        float df = fract(dc);
+        diffuseColor.rgb *= (0.82 + 0.3 * hash12(vec2(floor(dc), 7.0))) * mix(0.35, 1.0, smoothstep(0.0, 0.05, df) * (1.0 - smoothstep(0.95, 1.0, df)));
+        diffuseColor.rgb *= 0.88 + 0.2 * vnoise(vec2(vWP.x * 1.5, dc * 3.0));
+      `;
     } else if (pattern === 'louver') {
       frag = `
         float lv = fract(vWP.y / 0.055);

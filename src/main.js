@@ -67,7 +67,7 @@ function addLights(scene, withShadow) {
 addLights(farScene, false);
 const sunLight = addLights(nearScene, true);
 
-const world = { colliders: [], platforms: [] };
+const world = { colliders: [], platforms: [], pits: [] };
 const sound = new Soundscape();
 let player = null;
 const tick = () => new Promise((r) => setTimeout(r, 0));
@@ -90,6 +90,7 @@ async function buildWorld() {
   nearScene.add(B.group);
   world.colliders.push(...B.colliders);
   world.platforms.push(...B.platforms);
+  world.pits.push(...B.pits);
   status.textContent = 'Planting the trees';
   await tick();
   world.grass = buildGrass(T, maps, Q);

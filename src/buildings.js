@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { patternMaterial, glassMaterial } from './materials.js';
-import { HOUSE, SHOP, HORSE_SHED, NEIGHBORS, FRONT_DOOR_Z } from './layout.js';
+import { HOUSE, SHOP, HORSE_SHED, UTILITY_SHED, NEIGHBORS, FRONT_DOOR_Z, PIT, DECK } from './layout.js';
 
 // ---------- geometry kit ----------
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
@@ -118,7 +118,7 @@ function addDoor(add, face, c, w, h, base, key = 'door') {
 
 // ---------- the house ----------
 function buildHouse(add, y, colliders, platforms) {
-  const M = HOUSE.main, G = HOUSE.garage, P = HOUSE.patio, B = HOUSE.bump;
+  const M = HOUSE.main, G = HOUSE.garage, B = HOUSE.bump;
   const eave = y + HOUSE.eaveY;
   const pitch = 5 / 12;
   const ridgeX = (M[0] + M[2]) / 2;
@@ -158,15 +158,6 @@ function buildHouse(add, y, colliders, platforms) {
   add('ridge', box(G[0] - rk, gRidgeY - 0.02, gRidgeZ - 0.13, gEnd, gRidgeY + 0.09, gRidgeZ + 0.13));
   // front room roof, a low shed off the main eave
   roofPlane(add, 'shingle', 'trim', V(B[0] - 0.05, eave - 0.05, B[1] - 0.3), V(B[0] - 0.05, eave - 0.05, B[3] + 0.3), V(B[2] + 0.42, eave - 0.48, B[3] + 0.3), V(B[2] + 0.42, eave - 0.48, B[1] - 0.3), 0.1);
-  // patio cover, shallow shed roof on posts
-  const pEave = eave - 0.7;
-  roofPlane(add, 'shingle', 'trim', V(P[2] + 0.05, eave - 0.12, P[1]), V(P[2] + 0.05, eave - 0.12, P[3] + 0.3), V(P[0] - 0.3, pEave, P[3] + 0.3), V(P[0] - 0.3, pEave, P[1]), 0.12);
-  for (let z = P[1] + 0.4; z <= P[3] + 0.1; z += (P[3] - P[1] - 0.3) / 4) {
-    add('trim', box(P[0] + 0.05, y, z - 0.08, P[0] + 0.21, pEave - 0.1, z + 0.08));
-    colliders.push({ c: [P[0] + 0.13, z], r: 0.18 });
-  }
-  add('trim', box(P[0] - 0.05, pEave - 0.3, P[1], P[0] + 0.3, pEave - 0.05, P[3] + 0.25));
-
   // gutters along the eaves and downspouts at the corners
   const gy = slopeY(oh) - 0.12;
   add('gutter', cyl(M[2] + oh + 0.05, gy, M[1] - rk, M[2] + oh + 0.05, gy, M[3] + rk, 0.06, 6));
@@ -211,21 +202,25 @@ function buildHouse(add, y, colliders, platforms) {
   const south = { axis: 'z', sign: 1, at: M[3] };
   addWindow(add, south, -2.6, 1.3, 1.2, 1.4, { base: y, shutters: true });
   addWindow(add, south, -7.4, 1.3, 1.2, 1.4, { base: y, shutters: true });
-  // back wall under the patio: slider and two windows
+  // back wall: the slider opens onto the deck
   const back = { axis: 'x', sign: -1, at: M[0] };
   addWindow(add, back, 9.6, 1.4, 1.2, 1.4, { base: y });
   addWindow(add, back, -0.6, 1.2, 1.1, 1.5, { base: y });
   addDoor(add, back, 4.2, 2.4, 2.05, fl, 'glass');
   add('trim', onWall(back).wbox(4.18, 4.22, fl, fl + 2.05, 0.02, 0.06));
-  // north side: side door by the garage, a window, and the garage doors facing the shop
+  // north side: a window and the side door, which lines up with the shop's walk door
   const north = { axis: 'z', sign: -1, at: M[1] };
+  const sd = HOUSE.sideDoorX;
   addWindow(add, north, -3.0, 1.2, 1.1, 1.5, { base: y });
-  addDoor(add, north, -7.4, 0.9, 2.03, fl, 'door');
-  add('found', box(-8.0, y - 0.2, M[1] - 1.0, -6.8, fl, M[1]));
-  platforms.push({ r: [-8.0, M[1] - 1.0, -6.8, M[1]], y: fl });
-  addDoor(add, north, -17.55, 2.7, 2.3, y, 'garage');
-  addDoor(add, north, -12.95, 4.9, 2.3, y, 'garage');
-  addWindow(add, { axis: 'x', sign: -1, at: G[0] }, -8.2, 1.1, 0.9, 1.6, { base: y });
+  addDoor(add, north, sd, 0.9, 2.03, fl, 'door');
+  add('found', box(sd - 0.6, y - 0.2, M[1] - 1.0, sd + 0.6, fl, M[1]));
+  add('found', box(sd - 0.6, y - 0.2, M[1] - 1.25, sd + 0.6, y + 0.275, M[1] - 1.0));
+  platforms.push({ r: [sd - 0.6, M[1] - 1.0, sd + 0.6, M[1]], y: fl }, { r: [sd - 0.6, M[1] - 1.25, sd + 0.6, M[1] - 1.0], y: y + 0.275 });
+  addWindow(add, { axis: 'z', sign: -1, at: G[1] }, -14.8, 1.2, 0.9, 1.6, { base: y });
+  // the garage doors face west, onto the gravel, with the hoop off to the north side
+  const gWest = { axis: 'x', sign: -1, at: G[0] };
+  addDoor(add, gWest, -10.15, 4.9, 2.3, y, 'garage');
+  addDoor(add, gWest, -5.45, 2.7, 2.3, y, 'garage');
   // hose bibs
   add('iron', box(M[2], y + 0.45, 7.35, M[2] + 0.1, y + 0.55, 7.45));
   add('iron', box(-7.05, y + 0.45, M[3], -6.95, y + 0.55, M[3] + 0.1));
@@ -257,9 +252,9 @@ function buildShop(add, y, colliders) {
   // big overhead door on the east end, toward the road, and a walk door on the south
   const east = { axis: 'x', sign: 1, at: R[2] };
   addDoor(add, east, rz, 4.3, 4.3, y, 'garage');
-  addDoor(add, { axis: 'z', sign: 1, at: R[3] }, 0.6, 0.95, 2.05, y, 'steelDoor');
-  addWindow(add, { axis: 'z', sign: 1, at: R[3] }, -5.5, 1.1, 0.95, 1.55, { base: y, rail: false });
-  addWindow(add, { axis: 'z', sign: 1, at: R[3] }, -11.5, 1.1, 0.95, 1.55, { base: y, rail: false });
+  addDoor(add, { axis: 'z', sign: 1, at: R[3] }, SHOP.walkDoorX, 0.95, 2.05, y, 'steelDoor');
+  addWindow(add, { axis: 'z', sign: 1, at: R[3] }, -2.2, 1.1, 0.95, 1.55, { base: y, rail: false });
+  addWindow(add, { axis: 'z', sign: 1, at: R[3] }, -12.6, 1.1, 0.95, 1.55, { base: y, rail: false });
   addWindow(add, { axis: 'z', sign: -1, at: R[1] }, -8.0, 1.1, 0.95, 1.55, { base: y, rail: false });
   // a yard light over the big door
   add('iron', box(R[2], eave - 0.6, rz - 0.08, R[2] + 0.5, eave - 0.52, rz + 0.08));
@@ -286,35 +281,180 @@ function buildShop(add, y, colliders) {
   colliders.push({ rect: [L[0] + 0.3, L[1] + 0.3, L[0] + 2.3, L[1] + 2.4] });
 }
 
-// ---------- the horse shed in the arena ----------
-function buildHorseShed(add, y, colliders) {
-  const R = HORSE_SHED.rect;
-  const hi = y + 3.45, lo = y + 2.7;
+// ---------- the utility shed at the end of the sand: mowers and four-wheelers ----------
+function buildUtilityShed(add, y, colliders) {
+  const R = UTILITY_SHED.rect;
+  const hi = y + 3.5, lo = y + 2.8;
   const wallTop = (x) => lo + ((x - R[0]) / (R[2] - R[0])) * (hi - lo);
-  const t = 0.08;
-  add('board', box(R[0], y, R[1], R[0] + t, lo, R[3]));
-  // side walls follow the roof slope: build as box to the low height, plus a triangle
+  const t = 0.1;
+  add('steelTan', box(R[0], y, R[1], R[0] + t, lo, R[3]));
   for (const z of [R[1], R[3] - t]) {
-    add('board', box(R[0], y, z, R[2], lo, z + t));
-    for (const s of [-1, 1]) {
-      const zz = s < 0 ? z : z + t;
-      add('board', tri(V(R[0], lo, zz), V(R[2], lo, zz), V(R[2], wallTop(R[2]), zz), V(0, 0, s)));
+    add('steelTan', box(R[0], y, z, R[2], lo, z + t));
+    for (const s2 of [-1, 1]) {
+      const zz = s2 < 0 ? z : z + t;
+      add('steelTan', tri(V(R[0], lo, zz), V(R[2], lo, zz), V(R[2], wallTop(R[2]), zz), V(0, 0, s2)));
     }
   }
+  // east wall with a wide door, rolled up
+  const dz0 = R[1] + 4.2, dz1 = R[1] + 8.4, dh = 2.6;
+  add('steelTan', box(R[2] - t, y, R[1], R[2], hi, dz0));
+  add('steelTan', box(R[2] - t, y, dz1, R[2], hi, R[3]));
+  add('steelTan', box(R[2] - t, y + dh, dz0, R[2], hi, dz1));
+  add('steelTrim', box(R[2] - 0.02, y, dz0 - 0.1, R[2] + 0.05, y + dh + 0.1, dz0));
+  add('steelTrim', box(R[2] - 0.02, y, dz1, R[2] + 0.05, y + dh + 0.1, dz1 + 0.1));
+  add('garage', cyl(R[2] - 0.3, y + dh + 0.25, dz0, R[2] - 0.3, y + dh + 0.25, dz1, 0.2, 12));
+  add('found', box(R[0], y - 0.1, R[1], R[2], y + 0.06, R[3]));
+  for (const [cx, cz] of [[R[0], R[1]], [R[0], R[3]], [R[2], R[1]], [R[2], R[3]]]) add('steelTrim', box(cx - 0.06, y, cz - 0.06, cx + 0.06, cx === R[0] ? lo : hi, cz + 0.06));
   roofPlane(add, 'steelRoofLight', 'steelTrim', V(R[2] + 0.35, hi + 0.04, R[1] - 0.3), V(R[2] + 0.35, hi + 0.04, R[3] + 0.3), V(R[0] - 0.35, lo - 0.02, R[3] + 0.3), V(R[0] - 0.35, lo - 0.02, R[1] - 0.3), 0.08);
-  for (const z of [R[1] + 0.1, R[1] + 4.1, R[1] + 8.2, R[3] - 0.1]) {
-    add('post', box(R[2] - 0.16, y, z - 0.08, R[2], hi, z + 0.08));
-    colliders.push({ c: [R[2] - 0.08, z], r: 0.14 });
-  }
-  add('post', box(R[2] - 0.18, hi - 0.25, R[1], R[2], hi, R[3]));
-  // hay and a feeder inside
-  for (let k = 0; k < 2; k++) for (let i = 0; i < 3; i++) add('hay', box(R[0] + 0.15, y + k * 0.36, R[1] + 0.4 + i * 0.94, R[0] + 0.61, y + k * 0.36 + 0.36, R[1] + 1.3 + i * 0.94));
-  add('board', box(R[0] + 0.1, y + 0.5, R[1] + 5.0, R[0] + 0.7, y + 1.1, R[1] + 8.5));
+
+  // a red four-wheeler, nosed toward the door
+  const atv = (x, z) => {
+    const b = y + 0.06;
+    add('atvRed', box(x - 0.55, b + 0.42, z - 0.33, x + 0.55, b + 0.62, z + 0.33));
+    add('atvRed', box(x + 0.25, b + 0.55, z - 0.42, x + 0.75, b + 0.66, z + 0.42));
+    add('atvRed', box(x - 0.75, b + 0.55, z - 0.42, x - 0.3, b + 0.66, z + 0.42));
+    add('seat', box(x - 0.35, b + 0.62, z - 0.16, x + 0.2, b + 0.74, z + 0.16));
+    add('iron', box(x + 0.35, b + 0.66, z - 0.03, x + 0.42, b + 0.92, z + 0.03));
+    add('iron', cyl(x + 0.4, b + 0.92, z - 0.38, x + 0.4, b + 0.92, z + 0.38, 0.016, 6));
+    add('iron', box(x + 0.6, b + 0.66, z - 0.45, x + 0.8, b + 0.7, z + 0.45));
+    add('iron', box(x - 0.85, b + 0.66, z - 0.45, x - 0.6, b + 0.7, z + 0.45));
+    for (const [wx, wz] of [[x + 0.48, z - 0.42], [x + 0.48, z + 0.42], [x - 0.48, z - 0.42], [x - 0.48, z + 0.42]]) {
+      add('tire', cyl(wx, b + 0.27, wz - 0.12, wx, b + 0.27, wz + 0.12, 0.27, 14));
+    }
+  };
+  // a riding mower, green with a yellow seat
+  const mower = (x, z) => {
+    const b = y + 0.06;
+    add('mowerGreen', box(x - 0.55, b + 0.12, z - 0.5, x + 0.4, b + 0.24, z + 0.5));
+    add('mowerGreen', box(x - 0.6, b + 0.32, z - 0.28, x + 0.75, b + 0.55, z + 0.28));
+    add('mowerGreen', box(x + 0.2, b + 0.55, z - 0.24, x + 0.75, b + 0.72, z + 0.24));
+    add('seatYellow', box(x - 0.55, b + 0.55, z - 0.22, x - 0.12, b + 0.68, z + 0.22));
+    add('seatYellow', box(x - 0.6, b + 0.68, z - 0.22, x - 0.5, b + 0.95, z + 0.22));
+    add('iron', cyl(x + 0.1, b + 0.6, z, x + 0.02, b + 0.95, z, 0.02, 6));
+    add('iron', new THREE.TorusGeometry(0.16, 0.015, 5, 16).rotateX(Math.PI / 2).rotateZ(0.3).translate(x + 0.02, b + 0.96, z));
+    add('tire', cyl(x - 0.45, b + 0.33, z - 0.42, x - 0.45, b + 0.33, z - 0.24, 0.33, 14));
+    add('tire', cyl(x - 0.45, b + 0.33, z + 0.24, x - 0.45, b + 0.33, z + 0.42, 0.33, 14));
+    add('tire', cyl(x + 0.55, b + 0.19, z - 0.36, x + 0.55, b + 0.19, z - 0.24, 0.19, 12));
+    add('tire', cyl(x + 0.55, b + 0.19, z + 0.24, x + 0.55, b + 0.19, z + 0.36, 0.19, 12));
+  };
+  atv(R[0] + 4.3, R[1] + 5.4);
+  mower(R[0] + 4.4, R[1] + 7.4);
+  atv(R[0] + 1.6, R[1] + 1.6);
+  // shelves and gas cans along the back
+  add('board', box(R[0] + 0.1, y + 0.9, R[1] + 9, R[0] + 0.6, y + 0.94, R[3] - 0.3));
+  add('board', box(R[0] + 0.1, y + 1.6, R[1] + 9, R[0] + 0.6, y + 1.64, R[3] - 0.3));
+  for (let i = 0; i < 3; i++) add('atvRed', box(R[0] + 0.2, y + 0.06, R[1] + 9.2 + i * 0.4, R[0] + 0.45, y + 0.42, R[1] + 9.5 + i * 0.4));
   colliders.push({ rect: [R[0], R[1], R[0] + 0.15, R[3]] });
   colliders.push({ rect: [R[0], R[1], R[2], R[1] + 0.15] });
   colliders.push({ rect: [R[0], R[3] - 0.15, R[2], R[3]] });
-  colliders.push({ rect: [R[0], R[1] + 0.3, R[0] + 0.8, R[1] + 3.3] });
-  colliders.push({ rect: [R[0], R[1] + 5.0, R[0] + 0.8, R[1] + 8.5] });
+  colliders.push({ rect: [R[2] - 0.15, R[1], R[2], dz0] });
+  colliders.push({ rect: [R[2] - 0.15, dz1, R[2], R[3]] });
+  colliders.push({ c: [R[0] + 4.3, R[1] + 5.4], r: 0.75 }, { c: [R[0] + 4.4, R[1] + 7.4], r: 0.8 }, { c: [R[0] + 1.6, R[1] + 1.6], r: 0.75 });
+  colliders.push({ rect: [R[0], R[1] + 9, R[0] + 0.65, R[3]] });
+}
+
+// ---------- the horse shed: small and square, open to the north pasture ----------
+function buildHorseShed(add, y, colliders) {
+  const R = HORSE_SHED.rect;
+  const eave = y + 2.6;
+  const rz = (R[1] + R[3]) / 2;
+  const ridgeY = eave + ((R[3] - R[1]) / 2) * (4 / 12);
+  const t = 0.09;
+  // north wall with our door, east and south walls closed, west side open to the pasture
+  add('weathered', box(R[0], y, R[1], R[2], eave, R[1] + t));
+  add('weathered', box(R[0], y, R[3] - t, R[2], eave, R[3]));
+  add('weathered', box(R[2] - t, y, R[1], R[2], eave, R[3]));
+  for (const x of [R[0], R[2] - t]) {
+    add('weathered', tri(V(x, eave, R[1]), V(x, eave, R[3]), V(x, ridgeY, rz), V(-1, 0, 0)));
+    add('weathered', tri(V(x + t, eave, R[1]), V(x + t, eave, R[3]), V(x + t, ridgeY, rz), V(1, 0, 0)));
+  }
+  for (const z of [R[1] + 0.1, rz, R[3] - 0.1]) {
+    add('post', box(R[0], y, z - 0.08, R[0] + 0.16, eave, z + 0.08));
+    colliders.push({ c: [R[0] + 0.08, z], r: 0.14 });
+  }
+  add('post', box(R[0], eave - 0.25, R[1], R[0] + 0.16, eave, R[3]));
+  const oh = 0.35;
+  roofPlane(add, 'steelTeal', 'steelTrim', V(R[0] - oh, ridgeY + 0.03, rz), V(R[2] + oh, ridgeY + 0.03, rz), V(R[2] + oh, eave - oh * 0.333, R[3] + oh), V(R[0] - oh, eave - oh * 0.333, R[3] + oh), 0.07);
+  roofPlane(add, 'steelTeal', 'steelTrim', V(R[2] + oh, ridgeY + 0.03, rz), V(R[0] - oh, ridgeY + 0.03, rz), V(R[0] - oh, eave - oh * 0.333, R[1] - oh), V(R[2] + oh, eave - oh * 0.333, R[1] - oh), 0.07);
+  addDoor(add, { axis: 'z', sign: -1, at: R[1] }, (R[0] + R[2]) / 2 + 1.0, 1.1, 2.05, y, 'woodDoor');
+  // a hay feeder on the back wall and straw on the floor
+  add('board', box(R[2] - 0.9, y + 0.6, R[1] + 1.2, R[2] - t, y + 1.2, R[3] - 1.2));
+  add('hay', box(R[2] - 0.8, y + 0.9, R[1] + 1.3, R[2] - 0.2, y + 1.15, R[3] - 1.3));
+  add('hay', box(R[0] + 0.3, y, R[1] + 0.3, R[2] - 0.3, y + 0.04, R[3] - 0.3));
+  colliders.push({ rect: [R[0], R[1], R[2], R[1] + 0.12] });
+  colliders.push({ rect: [R[0], R[3] - 0.12, R[2], R[3]] });
+  colliders.push({ rect: [R[2] - 0.12, R[1], R[2], R[3]] });
+  colliders.push({ rect: [R[2] - 0.9, R[1] + 1.2, R[2], R[3] - 1.2] });
+}
+
+// ---------- out back: the deck and the walkout pit ----------
+function buildBackyard(add, y, colliders, platforms, pits) {
+  const P = PIT.rect, D = DECK, S = PIT.stairs;
+  const fl = y + HOUSE.floorY;
+  const floor = y - PIT.depth;
+  const top = y + 0.06;
+  pits.push({ r: P, y: floor });
+  // floor slab and retaining walls (the house's foundation is the east wall)
+  add('found', box(P[0], floor - 0.2, P[1], P[2], floor, P[3]));
+  add('found', box(P[0] - 0.25, floor - 0.2, P[1] - 0.25, P[2], top, P[1]));
+  add('found', box(P[0] - 0.25, floor - 0.2, P[3], P[2], top, P[3] + 0.25));
+  add('found', box(P[0] - 0.25, floor - 0.2, P[1], P[0], top, S[1]));
+  add('found', box(P[2] - 0.02, floor - 0.2, P[1], P[2] + 0.3, y - 0.3, P[3]));
+  // the basement opens onto the pit: a slider under the deck and two windows
+  const wall = { axis: 'x', sign: -1, at: P[2] - 0.02 };
+  addDoor(add, wall, 3.8, 2.2, 2.05, floor, 'glass');
+  add('trim', onWall(wall).wbox(3.78, 3.82, floor, floor + 2.05, 0.02, 0.06));
+  addWindow(add, wall, 8.8, 1.3, 1.1, 1.0, { base: floor });
+  addWindow(add, wall, -0.4, 1.1, 1.0, 1.1, { base: floor });
+  // stairs down on the south end, from the yard at the west edge
+  const n = Math.round(PIT.depth / 0.165);
+  const run = (S[2] - S[0]) / n;
+  for (let i = 0; i < n; i++) {
+    const x0 = S[0] + i * run, x1 = x0 + run;
+    const ty = y - (i + 1) * (PIT.depth / n);
+    add('found', box(x0, floor, S[1], x1, ty, S[3]));
+    platforms.push({ r: [x0, S[1], x1, S[3]], y: ty });
+  }
+  // handrail on the open side of the stairs
+  for (const [x, yy] of [[S[0] + 0.1, y], [(S[0] + S[2]) / 2, (y + floor) / 2], [S[2] - 0.1, floor + 0.2]]) add('iron', cyl(x, yy - 0.15, S[1] + 0.05, x, yy + 0.9, S[1] + 0.05, 0.022, 6));
+  add('iron', cyl(S[0] + 0.1, y + 0.9, S[1] + 0.05, S[2] - 0.1, floor + 1.1, S[1] + 0.05, 0.025, 6));
+  colliders.push({ seg: [S[0], S[1], S[0] + (S[2] - S[0]) * 0.75, S[1]], r: 0.08 });
+  // railing around the top of the pit
+  const rail = (x0, z0, x1, z1) => {
+    const len = Math.hypot(x1 - x0, z1 - z0);
+    const k = Math.max(1, Math.round(len / 1.6));
+    for (let i = 0; i <= k; i++) {
+      const x = x0 + ((x1 - x0) * i) / k, z = z0 + ((z1 - z0) * i) / k;
+      add('post', box(x - 0.05, top, z - 0.05, x + 0.05, top + 1.0, z + 0.05));
+    }
+    for (const h of [0.5, 0.95]) add('post', box(Math.min(x0, x1) - 0.03, top + h, Math.min(z0, z1) - 0.03, Math.max(x0, x1) + 0.03, top + h + 0.06, Math.max(z0, z1) + 0.03));
+    colliders.push({ seg: [x0, z0, x1, z1], r: 0.12 });
+  };
+  rail(P[0] - 0.12, P[1] - 0.12, P[2], P[1] - 0.12);
+  rail(P[0] - 0.12, P[1] - 0.12, P[0] - 0.12, S[1]);
+  rail(P[0] - 0.12, P[3] + 0.12, P[2], P[3] + 0.12);
+
+  // the deck off the sliding door, hanging over the pit
+  add('deck', box(D[0], fl - 0.05, D[1], D[2], fl, D[3]));
+  add('post', box(D[0], fl - 0.3, D[1], D[2], fl - 0.05, D[1] + 0.06));
+  add('post', box(D[0], fl - 0.3, D[3] - 0.06, D[2], fl - 0.05, D[3]));
+  add('post', box(D[0], fl - 0.3, D[1], D[0] + 0.06, fl - 0.05, D[3]));
+  for (const [px, pz] of [[D[0] + 0.1, D[1] + 0.1], [D[0] + 0.1, D[3] - 0.1], [D[0] + 0.1, (D[1] + D[3]) / 2]]) {
+    add('post', box(px - 0.07, floor, pz - 0.07, px + 0.07, fl - 0.05, pz + 0.07));
+    colliders.push({ c: [px, pz], r: 0.12 });
+  }
+  const balusters = (x0, z0, x1, z1) => {
+    const len = Math.hypot(x1 - x0, z1 - z0);
+    const k = Math.round(len / 0.13);
+    for (let i = 0; i <= k; i++) {
+      const x = x0 + ((x1 - x0) * i) / k, z = z0 + ((z1 - z0) * i) / k;
+      add('trim', box(x - 0.018, fl, z - 0.018, x + 0.018, fl + 0.92, z + 0.018));
+    }
+    add('trim', box(Math.min(x0, x1) - 0.05, fl + 0.92, Math.min(z0, z1) - 0.05, Math.max(x0, x1) + 0.05, fl + 0.97, Math.max(z0, z1) + 0.05));
+  };
+  balusters(D[0] + 0.03, D[1] + 0.03, D[0] + 0.03, D[3] - 0.03);
+  balusters(D[0] + 0.03, D[1] + 0.03, D[2], D[1] + 0.03);
+  balusters(D[0] + 0.03, D[3] - 0.03, D[2], D[3] - 0.03);
 }
 
 // ---------- neighbors, simpler ----------
@@ -326,7 +466,7 @@ function buildNeighbor(add, n, y, colliders, i) {
   const half = (alongX ? d : w) / 2;
   const pitch = n.shop ? 3 / 12 : 5 / 12;
   const ridgeY = eave + half * pitch;
-  const wallKey = n.shop ? 'steel' : ['sidingTan', 'sidingGray', 'sidingWhite'][i % 3];
+  const wallKey = n.shop ? 'steelWhite' : ['sidingTan', 'sidingGray', 'sidingWhite'][i % 3];
   const roofKey = n.roof === 'red' ? 'roofRed' : n.roof === 'blue' ? 'roofBlue' : n.roof === 'metal' ? 'steelRoofLight' : 'shingleDark';
   add(wallKey, box(R[0], y - 0.3, R[1], R[2], eave, R[3]));
   const oh = 0.4;
@@ -361,9 +501,17 @@ export function buildBuildings(T) {
   };
   const colliders = [];
   const platforms = [];
+  const pits = [];
   buildHouse(add, T.pads[0].y, colliders, platforms);
+  buildBackyard(add, T.pads[0].y, colliders, platforms, pits);
   buildShop(add, T.pads[1].y, colliders);
-  buildHorseShed(add, T.pads[2].y, colliders);
+  buildUtilityShed(add, T.pads[2].y, colliders);
+  {
+    const R = HORSE_SHED.rect;
+    let lo = Infinity;
+    for (const [x, z] of [[R[0], R[1]], [R[2], R[1]], [R[0], R[3]], [R[2], R[3]]]) lo = Math.min(lo, T.heightAt(x, z));
+    buildHorseShed(add, lo + 0.02, colliders);
+  }
   NEIGHBORS.forEach((n, i) => {
     const cx = (n.rect[0] + n.rect[2]) / 2, cz = (n.rect[1] + n.rect[3]) / 2;
     let lo = Infinity;
@@ -390,11 +538,22 @@ export function buildBuildings(T) {
     door: patternMaterial({ color: [122, 46, 38], rough: 0.5 }),
     garage: patternMaterial({ color: [240, 238, 232], pattern: 'paneldoor', rough: 0.5 }),
     iron: patternMaterial({ color: [28, 28, 28], rough: 0.6, metal: 0.4 }),
-    steel: patternMaterial({ color: [226, 226, 220], pattern: 'ribs', rough: 0.45, metal: 0.2 }),
-    steelTrim: patternMaterial({ color: [150, 176, 170], rough: 0.45, metal: 0.25 }),
-    steelRoof: patternMaterial({ color: [158, 182, 176], pattern: 'roofribs', ribAxis: 'x', rough: 0.4, metal: 0.35 }),
+    steel: patternMaterial({ color: [150, 34, 30], pattern: 'ribs', rough: 0.5, metal: 0.15 }),
+    steelWhite: patternMaterial({ color: [226, 226, 220], pattern: 'ribs', rough: 0.45, metal: 0.2 }),
+    steelTan: patternMaterial({ color: [204, 190, 160], pattern: 'ribs', rough: 0.5, metal: 0.15 }),
+    steelTrim: patternMaterial({ color: [242, 242, 238], rough: 0.45, metal: 0.1 }),
+    steelRoof: patternMaterial({ color: [196, 198, 196], pattern: 'roofribs', ribAxis: 'x', rough: 0.38, metal: 0.45 }),
+    steelTeal: patternMaterial({ color: [150, 178, 172], pattern: 'roofribs', ribAxis: 'z', rough: 0.4, metal: 0.35 }),
+    weathered: patternMaterial({ color: [134, 120, 104], pattern: 'board', rough: 1, side: THREE.DoubleSide }),
+    woodDoor: patternMaterial({ color: [110, 90, 70], pattern: 'board', rough: 0.9 }),
+    deck: patternMaterial({ color: [150, 116, 84], pattern: 'deck', rough: 0.85 }),
+    atvRed: patternMaterial({ color: [168, 30, 26], rough: 0.35, metal: 0.1 }),
+    mowerGreen: patternMaterial({ color: [38, 104, 46], rough: 0.35, metal: 0.1 }),
+    seatYellow: patternMaterial({ color: [226, 184, 40], rough: 0.5 }),
+    seat: patternMaterial({ color: [30, 30, 32], rough: 0.6 }),
+    tire: patternMaterial({ color: [26, 26, 26], rough: 0.9 }),
     steelRoofLight: patternMaterial({ color: [196, 198, 196], pattern: 'roofribs', ribAxis: 'z', rough: 0.4, metal: 0.4 }),
-    steelDoor: patternMaterial({ color: [150, 176, 170], rough: 0.45, metal: 0.25 }),
+    steelDoor: patternMaterial({ color: [240, 240, 236], rough: 0.45, metal: 0.1 }),
     board: patternMaterial({ color: [128, 96, 74], pattern: 'board', rough: 0.95, side: THREE.DoubleSide }),
     post: patternMaterial({ color: [120, 100, 80], pattern: 'board', rough: 0.95 }),
     hay: patternMaterial({ color: [196, 176, 112], pattern: 'hay', rough: 1 }),
@@ -409,5 +568,5 @@ export function buildBuildings(T) {
     mesh.receiveShadow = true;
     group.add(mesh);
   }
-  return { group, colliders, platforms };
+  return { group, colliders, platforms, pits };
 }
