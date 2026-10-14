@@ -77,6 +77,7 @@ function grassLayer({ count, radius, inner, segments, widthScale, heightScale, T
         uniform vec4 uMapRect;
         varying vec3 vGrass;
         varying float vTip;
+        varying float vGlint;
         ${NOISE}`)
       .replace('#include <beginnormal_vertex>', `
         vec2 rel = mod(aRoot.xy - uCam.xz + uSize * 0.5, uSize) - uSize * 0.5;
@@ -128,13 +129,16 @@ function grassLayer({ count, radius, inner, segments, widthScale, heightScale, T
         c = mix(c * 0.42, c * 1.18, smoothstep(0.0, 0.9, t));
         vGrass = c;
         vTip = t;
+        // dew: a few blade tips on the lawn catch the sun
+        vGlint = step(0.975, hash12(root * 3.7 + seed * 11.0)) * (1.0 - tall) * smoothstep(0.5, 0.9, t) * (1.0 - smoothstep(6.0, 18.0, dist));
       `)
       .replace('#include <begin_vertex>', 'vec3 transformed = grassPos;');
     sh.fragmentShader = sh.fragmentShader
-      .replace('#include <common>', '#include <common>\nvarying vec3 vGrass;\nvarying float vTip;')
+      .replace('#include <common>', '#include <common>\nvarying vec3 vGrass;\nvarying float vTip;\nvarying float vGlint;')
       .replace('#include <color_fragment>', 'diffuseColor.rgb *= vGrass;')
       .replace('#include <normal_fragment_begin>', NO_FLIP)
-      .replace('#include <lights_lambert_pars_fragment>', translucentLambert(0.55, 'vec3(1.0, 1.15, 0.45)'));
+      .replace('#include <lights_lambert_pars_fragment>', translucentLambert(0.55, 'vec3(1.0, 1.15, 0.45)',
+        'reflectedLight.directDiffuse += directLight.color * vGlint * pow( saturate( dot( reflect( - directLight.direction, geometryNormal ), geometryViewDir ) ), 18.0 ) * 6.0;'));
   };
   mat.customProgramCacheKey = () => 'grass';
   const mesh = new THREE.Mesh(g, mat);

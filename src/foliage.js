@@ -10,13 +10,14 @@ export const WIND = {
 const NO_FLIP = THREE.ShaderChunk.normal_fragment_begin.replace('normal *= faceDirection;', '');
 
 // Lambert plus light coming through thin leaves when you look toward the sun.
-export function translucentLambert(amount, tint = 'vec3(1.0, 1.12, 0.55)') {
+export function translucentLambert(amount, tint = 'vec3(1.0, 1.12, 0.55)', extra = '') {
   return THREE.ShaderChunk.lights_lambert_pars_fragment.replace(
     'reflectedLight.directDiffuse += irradiance * BRDF_Lambert( material.diffuseColor );',
     `reflectedLight.directDiffuse += irradiance * BRDF_Lambert( material.diffuseColor );
      float backLit = pow( saturate( dot( - geometryViewDir, directLight.direction ) ), 3.0 );
      float wrapLit = saturate( dot( - geometryNormal, directLight.direction ) ) * 0.45;
-     reflectedLight.directDiffuse += directLight.color * ( backLit * 0.9 + wrapLit ) * ${amount.toFixed(3)} * material.diffuseColor * ${tint} * RECIPROCAL_PI;`,
+     reflectedLight.directDiffuse += directLight.color * ( backLit * 0.9 + wrapLit ) * ${amount.toFixed(3)} * material.diffuseColor * ${tint} * RECIPROCAL_PI;
+     ${extra}`,
   );
 }
 

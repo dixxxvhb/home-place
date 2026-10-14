@@ -285,10 +285,28 @@ function render() {
 const clock = new THREE.Timer();
 const eul = new THREE.Euler();
 let elapsed = 0;
+// resolution follows the frame rate: drop when it struggles, creep back up when there's room
+const perf = { avg: 1 / 60, scale: 1, cool: 0 };
+function adaptResolution(dt) {
+  perf.avg += (dt - perf.avg) * 0.05;
+  perf.cool -= dt;
+  if (perf.cool > 0 || elapsed < 4) return;
+  let next = perf.scale;
+  if (perf.avg > 1 / 38 && perf.scale > 0.55) next = perf.scale - 0.1;
+  else if (perf.avg < 1 / 57 && perf.scale < 1) next = Math.min(1, perf.scale + 0.05);
+  if (next !== perf.scale) {
+    perf.scale = next;
+    perf.cool = 2.5;
+    renderer.setPixelRatio(Q.dpr * perf.scale);
+    if (composer) composer.setPixelRatio(Q.dpr * perf.scale);
+    resize();
+  }
+}
 function frame() {
   clock.update();
   const dt = Math.min(clock.getDelta(), 0.1);
   elapsed += dt;
+  adaptResolution(dt);
   const gust = gustAt(elapsed);
   WIND.uTime.value = elapsed;
   WIND.uGust.value = gust;
@@ -336,4 +354,4 @@ buildWorld().then(() => {
   enterBtn.disabled = false;
 }).catch((e) => { console.error(e); $('status').textContent = 'Something broke: ' + e.message; });
 
-window.__hp = { THREE, renderer, camera, setView, render, nearScene, farScene, world, sound, enter, get player() { return player; }, get mode() { return mode; } };
+window.__hp = { THREE, renderer, camera, perf, setView, render, nearScene, farScene, world, sound, enter, get player() { return player; }, get mode() { return mode; } };
