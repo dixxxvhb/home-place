@@ -123,7 +123,10 @@ export class Soundscape {
     const comp = ctx.createDynamicsCompressor();
     comp.threshold.value = -14; comp.knee.value = 10; comp.ratio.value = 4; comp.attack.value = 0.004; comp.release.value = 0.25;
     this.out.connect(comp).connect(ctx.destination);
-    this.out.gain.setTargetAtTime(0.95, ctx.currentTime, 1.2);
+    this.meter = ctx.createAnalyser();
+    this.meter.fftSize = 2048;
+    comp.connect(this.meter);
+    this.out.gain.setTargetAtTime(1.55, ctx.currentTime, 1.2);
 
     // a little open-air space to sit everything in, and a tighter one for under the patio
     this.verb = ctx.createConvolver();
@@ -712,7 +715,7 @@ export class Soundscape {
     s.playbackRate.value = rand(0.92, 1.08) * (speed > 2.4 ? 1.06 : 1);
     const g = ctx.createGain();
     const loud = Math.min(1.25, 0.65 + speed * 0.22);
-    g.gain.value = loud * rand(0.8, 1.05) * (kind === 'hard' ? 0.75 : 1);
+    g.gain.value = loud * rand(0.8, 1.05) * ({ hard: 0.6, gravel: 1.5, tall: 1.2, sand: 1.25, lawn: 1.0, dirt: 1.1 }[kind] || 1);
     const pan = ctx.createStereoPanner();
     this.foot = -(this.foot || 1);
     pan.pan.value = this.foot * 0.12;
@@ -760,14 +763,23 @@ export class Soundscape {
   // horses call through here
   horse(e, what) { if (this.started) this[what](e); }
 
+  // loudness of what's coming out right now, for testing
+  level() {
+    const a = new Float32Array(this.meter.fftSize);
+    this.meter.getFloatTimeDomainData(a);
+    let sum = 0, peak = 0;
+    for (const v of a) { sum += v * v; peak = Math.max(peak, Math.abs(v)); }
+    return { rms: 20 * Math.log10(Math.sqrt(sum / a.length) + 1e-9), peak: 20 * Math.log10(peak + 1e-9) };
+  }
+
   setMuted(m) {
     if (!this.started) return;
     this.muted = m;
-    this.out.gain.setTargetAtTime(m ? 0 : 0.95, this.ctx.currentTime, 0.2);
+    this.out.gain.setTargetAtTime(m ? 0 : 1.55, this.ctx.currentTime, 0.2);
   }
   duck(d) {
     if (!this.started || this.muted) return;
-    this.out.gain.setTargetAtTime(d ? 0.3 : 0.95, this.ctx.currentTime, 0.5);
+    this.out.gain.setTargetAtTime(d ? 0.45 : 1.55, this.ctx.currentTime, 0.5);
   }
 }
 
